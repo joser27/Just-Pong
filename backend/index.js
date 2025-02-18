@@ -5,7 +5,14 @@ require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: [
+        'just-pong-9avjw1wwj-jose-rodriguezs-projects-ef20cd82.vercel.app',
+        'http://localhost:3000'
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -14,6 +21,9 @@ const pool = new Pool({
   },
 });
 
+pool.connect()
+    .then(() => console.log('Connected to PostgreSQL database'))
+    .catch(err => console.error('Database connection error:', err));
 
 // Ensure table exists
 pool.query(`

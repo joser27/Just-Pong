@@ -1,3 +1,5 @@
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
 class SceneManager {
     constructor(gameEngine) {
         this.gameEngine = gameEngine;
@@ -97,11 +99,11 @@ class SceneManager {
     }
 
     fetchHighScores() {
-        fetch("https://backend-production-aba1.up.railway.app/api/highscores")
+        fetch(`${BACKEND_URL}/api/highscores`)
         .then(response => response.json())
         .then(data => {
-            console.log("Fetched high scores:", data); // Debug log
-            this.highScores = data.slice(0, 5); // Keep top 5 scores
+            console.log("Fetched high scores:", data);
+            this.highScores = data.slice(0, 5);
         })
         .catch(error => console.error("Error fetching high scores:", error));
     }
@@ -112,7 +114,7 @@ class SceneManager {
             playerName = this.promptForPlayerName();
         }
         
-        fetch("https://backend-production-aba1.up.railway.app/api/highscores", {
+        fetch(`${BACKEND_URL}/api/highscores`, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",
