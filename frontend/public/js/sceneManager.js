@@ -1,9 +1,9 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
 class SceneManager {
     constructor(gameEngine) {
         this.gameEngine = gameEngine;
         this.gameEngine.addEntity(this);
+        
+        this.BACKEND_URL = 'https://backend-production-aba1.up.railway.app';
         
         // Paddle (player)
         this.paddle = {
@@ -99,7 +99,7 @@ class SceneManager {
     }
 
     fetchHighScores() {
-        fetch(`${BACKEND_URL}/api/highscores`)
+        fetch(`${this.BACKEND_URL}/api/highscores`)
         .then(response => response.json())
         .then(data => {
             console.log("Fetched high scores:", data);
@@ -109,12 +109,12 @@ class SceneManager {
     }
 
     submitHighScore(playerName, score) {
-        console.log("Submitting score:", { playerName, score }); // Debug log
+        console.log("Submitting score:", { playerName, score });
         if (!playerName || playerName === "Player1") {
             playerName = this.promptForPlayerName();
         }
         
-        fetch(`${BACKEND_URL}/api/highscores`, {
+        fetch(`${this.BACKEND_URL}/api/highscores`, {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",
@@ -133,7 +133,7 @@ class SceneManager {
         })
         .then(data => {
             console.log("Score submission response:", data);
-            this.fetchHighScores(); // Refresh scores after submission
+            this.fetchHighScores();
         })
         .catch(error => console.error("Error submitting score:", error));
     }
