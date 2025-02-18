@@ -1,10 +1,9 @@
 declare global {
   interface Window {
-    GameEngine: new () => {
-      init(ctx: CanvasRenderingContext2D): void;
-      start(): void;
+    GameEngine: {
+      new(): GameEngineInstance;
     };
-    SceneManager: new (game: any) => void;
+    SceneManager: new (game: GameEngineInstance) => void;
     ASSET_MANAGER: {
       queueDownload(path: string): void;
       downloadAll(callback: () => void): void;
@@ -14,6 +13,11 @@ declare global {
       fps: number;
     };
   }
+}
+
+interface GameEngineInstance {
+  init(ctx: CanvasRenderingContext2D): void;
+  start(): void;
 }
 
 export {}; 
