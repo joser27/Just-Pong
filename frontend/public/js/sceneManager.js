@@ -97,7 +97,7 @@ class SceneManager {
     }
 
     fetchHighScores() {
-        fetch("http://localhost:5000/api/highscores")
+        fetch("https://backend-production-aba1.up.railway.app/api/highscores")
         .then(response => response.json())
         .then(data => {
             console.log("Fetched high scores:", data); // Debug log
@@ -112,7 +112,7 @@ class SceneManager {
             playerName = this.promptForPlayerName();
         }
         
-        fetch("http://localhost:5000/api/highscores", {
+        fetch("https://backend-production-aba1.up.railway.app/api/highscores", {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json",
