@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(cors({
     origin: [
-        'just-pong-9avjw1wwj-jose-rodriguezs-projects-ef20cd82.vercel.app',
+        'https://just-pong.vercel.app',
         'http://localhost:3000'
     ],
     methods: ['GET', 'POST'],
