@@ -1,19 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
+require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// PostgreSQL connection pool
 const pool = new Pool({
-  user: "postgres",
-  host: "db",  // Change to 'db' when using Docker
-  database: "pongdb",
-  password: "password",
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, // for Railway
+  },
 });
+
 
 // Ensure table exists
 pool.query(`
