@@ -5,22 +5,13 @@ class SceneManager {
         
         this.BACKEND_URL = 'https://backend-production-aba1.up.railway.app';
         
-        // Paddle (player)
-        this.paddle = {
-            x: 400, y: 550, 
-            width: 100, height: 10,
-            color: "white", 
-            speed: 500
-        };
+        // Create paddle and ball instances
+        this.paddle = new Paddle(gameEngine, 400, 550);
+        this.ball = new Ball(gameEngine, 400, 300);
         
-        // Ball
-        this.ball = {
-            x: 400, y: 300,
-            size: 10,
-            dx: 300, dy: -300,
-            color: "red",
-            baseSpeed: 300
-        };
+        // Add them to game engine
+        this.gameEngine.addEntity(this.paddle);
+        this.gameEngine.addEntity(this.ball);
         
         this.score = 0;
         this.highScore = localStorage.getItem('highScore') || 0;
@@ -34,6 +25,8 @@ class SceneManager {
         this.fetchHighScores();
         this.scoreUpdateInterval = setInterval(() => this.fetchHighScores(), 10000);
         this.initializeButtons();
+        this.upgradesManager = new UpgradesManager(gameEngine);
+        this.gameEngine.addEntity(this.upgradesManager);
     }
 
     initializeButtons() {
@@ -138,7 +131,7 @@ class SceneManager {
         .catch(error => console.error("Error submitting score:", error));
     }
 
-    update(dt) {
+    update() {
         if (this.gameOver) {
             if (this.gameEngine.keys[" "]) {
                 this.resetGame();
@@ -146,52 +139,13 @@ class SceneManager {
             return;
         }
 
-        // Paddle movement with delta time
-        if (this.gameEngine.keys["ArrowLeft"]) {
-            this.paddle.x -= this.paddle.speed * dt;
-        }
-        if (this.gameEngine.keys["ArrowRight"]) {
-            this.paddle.x += this.paddle.speed * dt;
-        }
-        
-        // Keep paddle in bounds
-        this.paddle.x = Math.max(0, Math.min(800 - this.paddle.width, this.paddle.x));
-        
-        // Ball movement with delta time
-        this.ball.x += this.ball.dx * dt;
-        this.ball.y += this.ball.dy * dt;
-        
-        // Wall collisions
-        if (this.ball.x - this.ball.size <= 0 || this.ball.x + this.ball.size >= 800) {
-            this.ball.dx *= -1;
-            this.ball.x = this.ball.x < 400 ? this.ball.size : 800 - this.ball.size;
-        }
-        if (this.ball.y - this.ball.size <= 0) {
-            this.ball.dy *= -1;
-            this.ball.y = this.ball.size;
-        }
-        
-        // Paddle collision with improved physics
-        if (this.ball.dy > 0) {
-            const ballBottom = this.ball.y + this.ball.size;
-            if (ballBottom >= this.paddle.y && 
-                this.ball.x + this.ball.size > this.paddle.x && 
-                this.ball.x - this.ball.size < this.paddle.x + this.paddle.width) {
-                
-                const paddleCenter = this.paddle.x + this.paddle.width/2;
-                const hitOffset = (this.ball.x - paddleCenter) / (this.paddle.width/2);
-                const maxAngle = Math.PI/3;
-                const angle = hitOffset * maxAngle;
-                
-                const speed = Math.hypot(this.ball.dx, this.ball.dy);
-                const newSpeed = speed + Math.min(this.score * 20, 600); // Speed increase in pixels per second
-                
-                this.ball.dx = Math.sin(angle) * newSpeed;
-                this.ball.dy = -Math.cos(angle) * newSpeed;
-                this.score++;
-                
-                this.paddle.width = Math.max(30, 100 - this.score * 2);
-            }
+
+        // Check for paddle hit
+        if (this.ball.checkPaddleCollision(this.paddle, () => {
+            this.score++;
+            this.paddle.shrink(2);
+        })) {
+            // Collision handled in ball class
         }
         
         // Game over check
@@ -209,14 +163,7 @@ class SceneManager {
         this.score = 0;
         this.gameOver = false;
         this.paddle.width = 100;
-        this.ball.x = 400;
-        this.ball.y = 300;
-        
-        const angle = (Math.random() * Math.PI/2 - Math.PI/4);
-        this.ball.dx = Math.sin(angle) * this.ball.baseSpeed;
-        this.ball.dy = -Math.cos(angle) * this.ball.baseSpeed;
-        
-        if (Math.random() < 0.5) this.ball.dx *= -1;
+        this.ball.reset();
     }
 
     draw(ctx) {
@@ -225,14 +172,10 @@ class SceneManager {
         ctx.fillRect(0, 0, 800, 600);
         
         // Draw paddle
-        ctx.fillStyle = this.paddle.color;
-        ctx.fillRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
+        this.paddle.draw(ctx);
         
         // Draw ball
-        ctx.fillStyle = this.ball.color;
-        ctx.beginPath();
-        ctx.arc(this.ball.x, this.ball.y, this.ball.size, 0, Math.PI * 2);
-        ctx.fill();
+        this.ball.draw(ctx);
         
         // Draw current score (right side)
         ctx.fillStyle = "white";
@@ -292,7 +235,5 @@ class SceneManager {
         }
     }
 }
-
-// Add this line at the end of the file to make SceneManager available globally
 window.SceneManager = SceneManager;
 

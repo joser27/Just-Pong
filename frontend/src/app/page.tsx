@@ -18,32 +18,31 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Load scripts
-    const assetManagerScript = document.createElement("script");
-    const gameEngineScript = document.createElement("script");
-    const timerScript = document.createElement("script");
-    const sceneManagerScript = document.createElement("script");
-    
-    assetManagerScript.src = "/js/assetManager.js";
-    gameEngineScript.src = "/js/gameengine.js";
-    timerScript.src = "/js/timer.js";
-    sceneManagerScript.src = "/js/sceneManager.js";
-    
-    // Chain load scripts in correct order
-    assetManagerScript.onload = () => {
-      document.body.appendChild(timerScript);
-    };
+    // Load scripts in sequence
+    const loadScripts = async () => {
+      const scripts = [
+        "/js/assetManager.js",
+        "/js/timer.js",
+        "/js/paddle.js", 
+        "/js/ball.js",     
+        "/js/gameengine.js",
+        "/js/sceneManager.js",
+        "/js/upgradesManager.js",
+        "/js/upgrades.js"
+      ];
 
-    timerScript.onload = () => {
-      document.body.appendChild(gameEngineScript);
-    };
+      for (const src of scripts) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
 
-    gameEngineScript.onload = () => {
-      document.body.appendChild(sceneManagerScript);
-    };
-
-    sceneManagerScript.onload = () => {
-      if (window.ASSET_MANAGER && window.GameEngine && window.Timer && window.SceneManager && canvasRef.current) {
+      // Initialize game after all scripts are loaded
+      if (canvasRef.current) {
         const canvas = canvasRef.current;
         canvas.focus();
         canvas.tabIndex = 0;
@@ -60,30 +59,16 @@ export default function Home() {
       }
     };
 
-    document.body.appendChild(assetManagerScript);
+    loadScripts().catch(console.error);
 
-    // Add fullscreen change listener
-    const handleFullscreenChange = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      
-      if (document.fullscreenElement) {
-        canvas.style.width = '100vw';
-        canvas.style.height = '100vh';
-      } else {
-        canvas.style.width = 'auto';
-        canvas.style.height = 'auto';
-      }
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-
+    // Cleanup
     return () => {
-      document.body.removeChild(assetManagerScript);
-      document.body.removeChild(gameEngineScript);
-      document.body.removeChild(timerScript);
-      document.body.removeChild(sceneManagerScript);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      const scripts = document.querySelectorAll('script');
+      scripts.forEach(script => {
+        if (script.src.includes('/js/')) {
+          document.body.removeChild(script);
+        }
+      });
     };
   }, []);
 
