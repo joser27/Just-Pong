@@ -10,16 +10,16 @@ class SceneManager {
             x: 400, y: 550, 
             width: 100, height: 10,
             color: "white", 
-            speed: 10
+            speed: 500
         };
         
         // Ball
         this.ball = {
             x: 400, y: 300,
             size: 10,
-            dx: 5, dy: -5,
+            dx: 300, dy: -300,
             color: "red",
-            baseSpeed: 5
+            baseSpeed: 300
         };
         
         this.score = 0;
@@ -138,7 +138,7 @@ class SceneManager {
         .catch(error => console.error("Error submitting score:", error));
     }
 
-    update() {
+    update(dt) {
         if (this.gameOver) {
             if (this.gameEngine.keys[" "]) {
                 this.resetGame();
@@ -146,23 +146,29 @@ class SceneManager {
             return;
         }
 
-        // Paddle movement
-        if (this.gameEngine.keys["ArrowLeft"]) this.paddle.x -= this.paddle.speed;
-        if (this.gameEngine.keys["ArrowRight"]) this.paddle.x += this.paddle.speed;
+        // Paddle movement with delta time
+        if (this.gameEngine.keys["ArrowLeft"]) {
+            this.paddle.x -= this.paddle.speed * dt;
+        }
+        if (this.gameEngine.keys["ArrowRight"]) {
+            this.paddle.x += this.paddle.speed * dt;
+        }
+        
+        // Keep paddle in bounds
         this.paddle.x = Math.max(0, Math.min(800 - this.paddle.width, this.paddle.x));
         
-        // Ball movement
-        this.ball.x += this.ball.dx;
-        this.ball.y += this.ball.dy;
+        // Ball movement with delta time
+        this.ball.x += this.ball.dx * dt;
+        this.ball.y += this.ball.dy * dt;
         
         // Wall collisions
         if (this.ball.x - this.ball.size <= 0 || this.ball.x + this.ball.size >= 800) {
             this.ball.dx *= -1;
-            this.ball.x = this.ball.x < 400 ? this.ball.size : 800 - this.ball.size; // Prevent sticking
+            this.ball.x = this.ball.x < 400 ? this.ball.size : 800 - this.ball.size;
         }
         if (this.ball.y - this.ball.size <= 0) {
             this.ball.dy *= -1;
-            this.ball.y = this.ball.size; // Adjust position
+            this.ball.y = this.ball.size;
         }
         
         // Paddle collision with improved physics
@@ -174,11 +180,11 @@ class SceneManager {
                 
                 const paddleCenter = this.paddle.x + this.paddle.width/2;
                 const hitOffset = (this.ball.x - paddleCenter) / (this.paddle.width/2);
-                const maxAngle = Math.PI/3; // 60 degrees
+                const maxAngle = Math.PI/3;
                 const angle = hitOffset * maxAngle;
                 
                 const speed = Math.hypot(this.ball.dx, this.ball.dy);
-                const newSpeed = speed + Math.min(this.score * 0.2, 10);
+                const newSpeed = speed + Math.min(this.score * 20, 600); // Speed increase in pixels per second
                 
                 this.ball.dx = Math.sin(angle) * newSpeed;
                 this.ball.dy = -Math.cos(angle) * newSpeed;
@@ -191,13 +197,10 @@ class SceneManager {
         // Game over check
         if (this.ball.y + this.ball.size >= 600) {
             this.gameOver = true;
-            // Submit score regardless of whether it's a high score
-            this.submitHighScore(this.playerName, this.score);
-            
-            // Still update local high score if it's better
             if (this.score > this.highScore) {
                 this.highScore = this.score;
                 localStorage.setItem('highScore', this.score);
+                this.submitHighScore(this.playerName, this.score);
             }
         }
     }
@@ -209,12 +212,10 @@ class SceneManager {
         this.ball.x = 400;
         this.ball.y = 300;
         
-        // Random initial angle (-45° to 45° from vertical)
         const angle = (Math.random() * Math.PI/2 - Math.PI/4);
         this.ball.dx = Math.sin(angle) * this.ball.baseSpeed;
         this.ball.dy = -Math.cos(angle) * this.ball.baseSpeed;
         
-        // Random horizontal direction
         if (Math.random() < 0.5) this.ball.dx *= -1;
     }
 
@@ -233,25 +234,14 @@ class SceneManager {
         ctx.arc(this.ball.x, this.ball.y, this.ball.size, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw score
+        // Draw current score (right side)
         ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
-        ctx.fillText(`Score: ${this.score}`, 10, 30);
+        ctx.font = "24px Arial";
+        ctx.textAlign = "right";
+        ctx.fillText(`Score: ${this.score}`, 780, 30);
         
-        // Draw debug info if enabled
-        if (this.debug) {
-            ctx.fillStyle = "white";
-            ctx.font = "14px Arial";
-            ctx.fillText(`Ball Position: (${Math.round(this.ball.x)}, ${Math.round(this.ball.y)})`, 10, 570);
-            ctx.fillText(`Ball Speed: (${this.ball.dx.toFixed(2)}, ${this.ball.dy.toFixed(2)})`, 10, 585);
-            
-            // Draw collision boxes
-            ctx.strokeStyle = "yellow";
-            ctx.strokeRect(this.paddle.x, this.paddle.y, this.paddle.width, this.paddle.height);
-            ctx.beginPath();
-            ctx.arc(this.ball.x, this.ball.y, this.ball.size, 0, Math.PI * 2);
-            ctx.stroke();
-        }
+        // Draw leaderboard (left side)
+        this.drawLeaderboard(ctx);
         
         // Draw game over
         if (this.gameOver) {
@@ -259,27 +249,23 @@ class SceneManager {
             ctx.fillRect(0, 0, 800, 600);
             ctx.fillStyle = "white";
             ctx.font = "40px Arial";
-            ctx.fillText("Game Over!", 300, 250);
+            ctx.textAlign = "center";
+            ctx.fillText("Game Over!", 400, 250);
             ctx.font = "20px Arial";
-            ctx.fillText("Press SPACE to restart", 300, 300);
+            ctx.fillText("Press SPACE to restart", 400, 300);
         }
-
-        // Draw leaderboard
-        this.drawLeaderboard(ctx);
     }
 
     drawLeaderboard(ctx) {
         // Draw leaderboard background
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(ctx.canvas.width - 200, 10, 190, 150);
+        ctx.fillRect(10, 10, 190, 150);
         
         // Draw leaderboard title
         ctx.fillStyle = "gold";
         ctx.font = "bold 20px Arial";
-        ctx.fillText("TOP SCORES", ctx.canvas.width - 180, 35);
-        
-        // Debug log
-        console.log("Current highScores array:", this.highScores);
+        ctx.textAlign = "left";
+        ctx.fillText("TOP SCORES", 20, 35);
         
         // Draw high scores
         ctx.font = "16px Arial";
@@ -290,13 +276,13 @@ class SceneManager {
                 const score = entry.score.toString().padStart(5, ' ');
                 ctx.fillText(
                     `${(index + 1)}. ${entry.player_name}: ${score}`, 
-                    ctx.canvas.width - 180, 
+                    20, 
                     60 + index * 25
                 );
             });
         } else {
             ctx.fillStyle = "white";
-            ctx.fillText("No scores yet", ctx.canvas.width - 180, 60);
+            ctx.fillText("No scores yet", 20, 60);
         }
     }
 

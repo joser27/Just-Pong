@@ -33,21 +33,23 @@ class GameEngine {
             debugging: false,
         };
 
+        this.deltaTime = 0;
+        this.lastTime = 0;
+        this.fps = 60;
+        this.frameTime = 1000 / this.fps;
+        this.accumulator = 0;
+        this.running = false;
     };
 
     init(ctx) {
         this.ctx = ctx;
         this.startInput();
-        this.timer = new Timer();
     };
 
     start() {
         this.running = true;
-        const gameLoop = () => {
-            this.loop();
-            requestAnimFrame(gameLoop, this.ctx.canvas);
-        };
-        gameLoop();
+        this.lastTime = performance.now();
+        requestAnimationFrame(timestamp => this.loop(timestamp));
     };
 
     startInput() {
@@ -138,13 +140,13 @@ class GameEngine {
             this.ctx.font = "bold 16px Arial";
             this.ctx.lineWidth = 4;
 
-            this.ctx.strokeText("FPS: " + this.timer.fps, 10, 30);
-            this.ctx.fillText("FPS: " + this.timer.fps, 10, 30);
+            this.ctx.strokeText("FPS: " + this.fps, 10, 30);
+            this.ctx.fillText("FPS: " + this.fps, 10, 30);
         }
 
     }
 
-    update() {
+    update(dt) {
         //console.log(this.entities);
         let entitiesCount = this.entities.length;
 
@@ -153,7 +155,7 @@ class GameEngine {
 
             if (!entity.removeFromWorld) {
                 if (!entity.isPaused) {
-                    entity.update();
+                    entity.update(dt);
                 }
             }
         }
@@ -165,10 +167,28 @@ class GameEngine {
         }
     };
 
-    loop() {
-        this.clockTick = this.timer.tick();
-        this.update();
+    loop(timestamp) {
+        if (!this.running) return;
+
+        // Calculate delta time in seconds
+        this.deltaTime = (timestamp - this.lastTime) / 1000;
+        
+        // Clamp delta time to prevent spiral of death
+        if (this.deltaTime > 0.25) this.deltaTime = 0.25;
+        
+        this.accumulator += this.deltaTime * 1000; // Convert to ms for frame time comparison
+
+        // Update game state at a fixed time step
+        while (this.accumulator >= this.frameTime) {
+            this.update(this.frameTime / 1000); // Convert back to seconds for update
+            this.accumulator -= this.frameTime;
+        }
+
+        // Render at whatever frame rate the monitor supports
         this.draw();
+        
+        this.lastTime = timestamp;
+        requestAnimationFrame(timestamp => this.loop(timestamp));
     };
 
     consumeKeyPress(key) {
@@ -177,6 +197,10 @@ class GameEngine {
         return wasPressed;
     }
 
+    // Helper method to convert pixels per frame to pixels per second
+    pixelsPerSecond(pixelsPerFrame) {
+        return pixelsPerFrame * this.fps;
+    }
 };
 
 // KV Le was here :)
